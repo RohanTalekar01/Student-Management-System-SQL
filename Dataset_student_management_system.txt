@@ -1,0 +1,227 @@
+-- ============================================================
+-- STUDENT MANAGEMENT SYSTEM
+-- Technologies: SQL, MySQL
+-- Includes: Schema, Constraints, Large Sample Dataset,
+--           CRUD examples, JOINs, GROUP BY, HAVING,
+--           Aggregate Functions, Subqueries
+-- ============================================================
+
+DROP DATABASE IF EXISTS student_management_system;
+CREATE DATABASE student_management_system;
+USE student_management_system;
+
+-- ============================================================
+-- 1. SCHEMA DESIGN
+-- ============================================================
+
+
+
+CREATE TABLE Departments (
+    dept_id      INT AUTO_INCREMENT PRIMARY KEY,
+    dept_name    VARCHAR(100) NOT NULL UNIQUE
+);
+
+
+
+CREATE TABLE Students (
+    student_id   INT AUTO_INCREMENT PRIMARY KEY,
+    first_name   VARCHAR(50)  NOT NULL,
+    last_name    VARCHAR(50)  NOT NULL,
+    email        VARCHAR(100) NOT NULL UNIQUE,
+    dob          DATE         NOT NULL,
+    gender       ENUM('M','F','Other') NOT NULL,
+    phone        VARCHAR(15),
+    dept_id      INT,
+    enrollment_year INT NOT NULL,
+    gpa          DECIMAL(3,2) DEFAULT 0.00 CHECK (gpa >= 0 AND gpa <= 4.00),
+    FOREIGN KEY (dept_id) REFERENCES Departments(dept_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+
+
+CREATE TABLE Instructors (
+    instructor_id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name    VARCHAR(50) NOT NULL,
+    last_name     VARCHAR(50) NOT NULL,
+    email         VARCHAR(100) NOT NULL UNIQUE,
+    dept_id       INT,
+    FOREIGN KEY (dept_id) REFERENCES Departments(dept_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+
+
+CREATE TABLE Courses (
+    course_id     INT AUTO_INCREMENT PRIMARY KEY,
+    course_code   VARCHAR(10) NOT NULL UNIQUE,
+    course_name   VARCHAR(100) NOT NULL,
+    credits       INT NOT NULL CHECK (credits BETWEEN 1 AND 6),
+    dept_id       INT,
+    instructor_id INT,
+    FOREIGN KEY (dept_id) REFERENCES Departments(dept_id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+
+
+CREATE TABLE Enrollments (
+    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id    INT NOT NULL,
+    course_id     INT NOT NULL,
+    semester      VARCHAR(20) NOT NULL,
+    grade         DECIMAL(4,2) CHECK (grade >= 0 AND grade <= 100),
+    enrollment_date DATE NOT NULL,
+    UNIQUE KEY unique_enrollment (student_id, course_id, semester),
+    FOREIGN KEY (student_id) REFERENCES Students(student_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- ============================================================
+-- 2. LARGE SAMPLE DATASET
+-- ============================================================
+
+
+
+-- ---------- Departments ----------
+INSERT INTO Departments (dept_name) VALUES
+('Computer Science'),
+('Electrical Engineering'),
+('Mechanical Engineering'),
+('Mathematics'),
+('Physics'),
+('Business Administration'),
+('Biotechnology'),
+('Civil Engineering');
+
+
+
+-- ---------- Instructors ----------
+INSERT INTO Instructors (first_name, last_name, email, dept_id) VALUES
+('Ravi', 'Sharma', 'ravi.sharma@university.edu', 1),
+('Anita', 'Verma', 'anita.verma@university.edu', 1),
+('John', 'Miller', 'john.miller@university.edu', 2),
+('Priya', 'Nair', 'priya.nair@university.edu', 3),
+('David', 'Chen', 'david.chen@university.edu', 4),
+('Sara', 'Khan', 'sara.khan@university.edu', 5),
+('Michael', 'Brown', 'michael.brown@university.edu', 6),
+('Neha', 'Gupta', 'neha.gupta@university.edu', 7),
+('Arjun', 'Reddy', 'arjun.reddy@university.edu', 8),
+('Emily', 'Davis', 'emily.davis@university.edu', 1),
+('Karan', 'Malhotra', 'karan.malhotra@university.edu', 2),
+('Lisa', 'Wong', 'lisa.wong@university.edu', 4);
+
+
+
+-- ---------- Courses ----------
+INSERT INTO Courses (course_code, course_name, credits, dept_id, instructor_id) VALUES
+('CS101', 'Introduction to Programming', 4, 1, 1),
+('CS102', 'Data Structures', 4, 1, 2),
+('CS201', 'Database Systems', 3, 1, 10),
+('CS202', 'Operating Systems', 3, 1, 1),
+('CS301', 'Machine Learning', 4, 1, 2),
+('EE101', 'Circuit Theory', 3, 2, 3),
+('EE201', 'Digital Electronics', 3, 2, 11),
+('ME101', 'Engineering Mechanics', 3, 3, 4),
+('ME201', 'Thermodynamics', 4, 3, 4),
+('MA101', 'Calculus I', 4, 4, 5),
+('MA201', 'Linear Algebra', 3, 4, 12),
+('PH101', 'Physics I', 4, 5, 6),
+('BA101', 'Principles of Management', 3, 6, 7),
+('BT101', 'Introduction to Biotechnology', 3, 7, 8),
+('CE101', 'Structural Engineering', 3, 8, 9);
+
+
+
+-- ---------- Students (40 records) ----------
+INSERT INTO Students (first_name, last_name, email, dob, gender, phone, dept_id, enrollment_year, gpa) VALUES
+('Aarav', 'Patel', 'aarav.patel@student.edu', '2003-05-14', 'M', '9876500001', 1, 2021, 3.75),
+('Diya', 'Shah', 'diya.shah@student.edu', '2003-08-22', 'F', '9876500002', 1, 2021, 3.90),
+('Vihaan', 'Kumar', 'vihaan.kumar@student.edu', '2002-11-30', 'M', '9876500003', 2, 2020, 3.20),
+('Ananya', 'Singh', 'ananya.singh@student.edu', '2003-01-19', 'F', '9876500004', 1, 2021, 3.60),
+('Reyansh', 'Mehta', 'reyansh.mehta@student.edu', '2002-07-05', 'M', '9876500005', 3, 2020, 2.95),
+('Ishita', 'Rao', 'ishita.rao@student.edu', '2003-03-12', 'F', '9876500006', 4, 2021, 3.85),
+('Aditya', 'Joshi', 'aditya.joshi@student.edu', '2002-09-25', 'M', '9876500007', 2, 2020, 3.10),
+('Kavya', 'Iyer', 'kavya.iyer@student.edu', '2003-12-01', 'F', '9876500008', 1, 2021, 3.95),
+('Vivaan', 'Menon', 'vivaan.menon@student.edu', '2002-04-18', 'M', '9876500009', 5, 2020, 2.80),
+('Saanvi', 'Pillai', 'saanvi.pillai@student.edu', '2003-06-27', 'F', '9876500010', 1, 2021, 3.55),
+('Arjun', 'Desai', 'arjun.desai@student.edu', '2002-10-09', 'M', '9876500011', 6, 2020, 3.00),
+('Myra', 'Kapoor', 'myra.kapoor@student.edu', '2003-02-15', 'F', '9876500012', 7, 2021, 3.70),
+('Kabir', 'Chauhan', 'kabir.chauhan@student.edu', '2002-08-03', 'M', '9876500013', 8, 2020, 2.65),
+('Aadhya', 'Bhatt', 'aadhya.bhatt@student.edu', '2003-05-29', 'F', '9876500014', 1, 2021, 3.88),
+('Ayaan', 'Trivedi', 'ayaan.trivedi@student.edu', '2002-01-11', 'M', '9876500015', 2, 2020, 3.05),
+('Anika', 'Nair', 'anika.nair@student.edu', '2003-09-17', 'F', '9876500016', 4, 2021, 3.92),
+('Dhruv', 'Saxena', 'dhruv.saxena@student.edu', '2002-06-08', 'M', '9876500017', 3, 2020, 2.75),
+('Ira', 'Bose', 'ira.bose@student.edu', '2003-11-04', 'F', '9876500018', 1, 2021, 3.65),
+('Krishna', 'Yadav', 'krishna.yadav@student.edu', '2002-03-21', 'M', '9876500019', 5, 2020, 2.90),
+('Pari', 'Chatterjee', 'pari.chatterjee@student.edu', '2003-07-13', 'F', '9876500020', 1, 2021, 3.99),
+('Shaurya', 'Agarwal', 'shaurya.agarwal@student.edu', '2002-12-26', 'M', '9876500021', 6, 2020, 2.50),
+('Navya', 'Mishra', 'navya.mishra@student.edu', '2003-04-09', 'F', '9876500022', 7, 2021, 3.40),
+('Ritvik', 'Pandey', 'ritvik.pandey@student.edu', '2002-02-14', 'M', '9876500023', 8, 2020, 3.15),
+('Anvi', 'Sinha', 'anvi.sinha@student.edu', '2003-10-30', 'F', '9876500024', 1, 2021, 3.80),
+('Vedant', 'Dubey', 'vedant.dubey@student.edu', '2002-05-06', 'M', '9876500025', 2, 2020, 2.60),
+('Riya', 'Kulkarni', 'riya.kulkarni@student.edu', '2003-08-19', 'F', '9876500026', 4, 2021, 3.77),
+('Yuvraj', 'Thakur', 'yuvraj.thakur@student.edu', '2002-11-23', 'M', '9876500027', 3, 2020, 2.85),
+('Siya', 'Ghosh', 'siya.ghosh@student.edu', '2003-01-02', 'F', '9876500028', 1, 2021, 3.93),
+('Devansh', 'Bhatia', 'devansh.bhatia@student.edu', '2002-09-16', 'M', '9876500029', 5, 2020, 2.70),
+('Amaira', 'Suri', 'amaira.suri@student.edu', '2003-06-11', 'F', '9876500030', 1, 2021, 3.58),
+('Rudra', 'Chopra', 'rudra.chopra@student.edu', '2002-07-28', 'M', '9876500031', 6, 2020, 2.95),
+('Aarohi', 'Sen', 'aarohi.sen@student.edu', '2003-03-24', 'F', '9876500032', 7, 2021, 3.68),
+('Vihan', 'Rana', 'vihan.rana@student.edu', '2002-10-15', 'M', '9876500033', 8, 2020, 3.02),
+('Prisha', 'Bakshi', 'prisha.bakshi@student.edu', '2003-12-08', 'F', '9876500034', 1, 2021, 3.97),
+('Atharv', 'Vora', 'atharv.vora@student.edu', '2002-04-02', 'M', '9876500035', 2, 2020, 2.55),
+('Zara', 'Khanna', 'zara.khanna@student.edu', '2003-09-05', 'F', '9876500036', 4, 2021, 3.83),
+('Reyaan', 'Bindra', 'reyaan.bindra@student.edu', '2002-06-19', 'M', '9876500037', 3, 2020, 2.68),
+('Ahana', 'Puri', 'ahana.puri@student.edu', '2003-02-27', 'F', '9876500038', 1, 2021, 3.71),
+('Vivan', 'Grover', 'vivan.grover@student.edu', '2002-08-14', 'M', '9876500039', 5, 2020, 2.88),
+('Tanvi', 'Oberoi', 'tanvi.oberoi@student.edu', '2003-11-21', 'F', '9876500040', 1, 2021, 3.89);
+
+
+
+-- ---------- Enrollments (large dataset, multiple semesters) ----------
+INSERT INTO Enrollments (student_id, course_id, semester, grade, enrollment_date) VALUES
+(1, 1, 'Fall2021', 88.5, '2021-08-15'), (1, 2, 'Fall2021', 91.0, '2021-08-15'), (1, 3, 'Spring2022', 79.5, '2022-01-10'),
+(2, 1, 'Fall2021', 95.0, '2021-08-15'), (2, 2, 'Fall2021', 89.0, '2021-08-15'), (2, 5, 'Spring2022', 93.5, '2022-01-10'),
+(3, 6, 'Fall2020', 72.0, '2020-08-12'), (3, 7, 'Spring2021', 68.5, '2021-01-08'),
+(4, 1, 'Fall2021', 85.0, '2021-08-15'), (4, 3, 'Spring2022', 80.0, '2022-01-10'),
+(5, 8, 'Fall2020', 65.0, '2020-08-12'), (5, 9, 'Spring2021', 70.5, '2021-01-08'),
+(6, 10, 'Fall2021', 91.5, '2021-08-15'), (6, 11, 'Spring2022', 88.0, '2022-01-10'),
+(7, 6, 'Fall2020', 74.0, '2020-08-12'), (7, 7, 'Spring2021', 69.0, '2021-01-08'),
+(8, 1, 'Fall2021', 97.0, '2021-08-15'), (8, 2, 'Fall2021', 94.5, '2021-08-15'), (8, 5, 'Spring2022', 96.0, '2022-01-10'),
+(9, 12, 'Fall2020', 62.0, '2020-08-12'),
+(10, 1, 'Fall2021', 82.0, '2021-08-15'), (10, 3, 'Spring2022', 78.5, '2022-01-10'),
+(11, 13, 'Fall2020', 75.0, '2020-08-12'),
+(12, 14, 'Fall2021', 84.5, '2021-08-15'),
+(13, 15, 'Fall2020', 60.0, '2020-08-12'),
+(14, 1, 'Fall2021', 92.5, '2021-08-15'), (14, 2, 'Fall2021', 90.0, '2021-08-15'),
+(15, 6, 'Fall2020', 71.0, '2020-08-12'),
+(16, 10, 'Fall2021', 95.5, '2021-08-15'), (16, 11, 'Spring2022', 93.0, '2022-01-10'),
+(17, 8, 'Fall2020', 63.5, '2020-08-12'),
+(18, 1, 'Fall2021', 86.0, '2021-08-15'),
+(19, 12, 'Fall2020', 58.5, '2020-08-12'),
+(20, 1, 'Fall2021', 98.5, '2021-08-15'), (20, 2, 'Fall2021', 97.5, '2021-08-15'), (20, 5, 'Spring2022', 99.0, '2022-01-10'),
+(21, 13, 'Fall2020', 55.0, '2020-08-12'),
+(22, 14, 'Fall2021', 79.0, '2021-08-15'),
+(23, 15, 'Fall2020', 68.0, '2020-08-12'),
+(24, 1, 'Fall2021', 88.0, '2021-08-15'), (24, 3, 'Spring2022', 85.5, '2022-01-10'),
+(25, 6, 'Fall2020', 61.0, '2020-08-12'),
+(26, 10, 'Fall2021', 90.0, '2021-08-15'),
+(27, 8, 'Fall2020', 64.0, '2020-08-12'),
+(28, 1, 'Fall2021', 96.5, '2021-08-15'), (28, 2, 'Fall2021', 92.0, '2021-08-15'),
+(29, 12, 'Fall2020', 59.0, '2020-08-12'),
+(30, 1, 'Fall2021', 83.5, '2021-08-15'),
+(31, 13, 'Fall2020', 66.5, '2020-08-12'),
+(32, 14, 'Fall2021', 81.0, '2021-08-15'),
+(33, 15, 'Fall2020', 70.0, '2020-08-12'),
+(34, 1, 'Fall2021', 99.5, '2021-08-15'), (34, 2, 'Fall2021', 96.0, '2021-08-15'),
+(35, 6, 'Fall2020', 57.5, '2020-08-12'),
+(36, 10, 'Fall2021', 89.5, '2021-08-15'),
+(37, 8, 'Fall2020', 62.5, '2020-08-12'),
+(38, 1, 'Fall2021', 87.5, '2021-08-15'),
+(39, 12, 'Fall2020', 60.5, '2020-08-12'),
+(40, 1, 'Fall2021', 94.0, '2021-08-15'), (40, 3, 'Spring2022', 91.5, '2022-01-10');
+
